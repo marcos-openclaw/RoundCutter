@@ -1,6 +1,6 @@
 # 🥊 RoundCutter
 
-[![Download APK](https://img.shields.io/badge/Download-APK-green?style=for-the-badge&logo=android)](https://github.com/marcos-openclaw/RoundCutter/raw/main/release/RoundCutter.apk)
+[![Download APK](https://img.shields.io/badge/Download-APK_v1.0.0-green?style=for-the-badge&logo=android)](https://github.com/marcos-openclaw/RoundCutter/releases/latest/download/RoundCutter.apk)
 
 A single-purpose Android app for boxers (and anyone who records long sessions) who need to extract multiple clips from a single video. Record your 40-minute sparring session, mark individual rounds, and export them all as separate files — in seconds.
 
