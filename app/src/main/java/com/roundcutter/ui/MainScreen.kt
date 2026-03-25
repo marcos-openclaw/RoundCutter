@@ -417,7 +417,7 @@ private fun ColumnScope.ControlsContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Button(
@@ -428,12 +428,15 @@ private fun ColumnScope.ControlsContent(
                     ButtonDefaults.buttonColors()
             ) { Text("SET IN") }
 
+            Spacer(Modifier.width(8.dp))
+
             Button(
                 onClick = { viewModel.setOutPoint(player.currentPosition) },
                 enabled = inPoint != null
             ) { Text("SET OUT") }
 
             if (inPoint != null) {
+                Spacer(Modifier.width(8.dp))
                 Text(
                     text = "IN: ${formatTime(inPoint!!)}",
                     style = MaterialTheme.typography.bodySmall,
