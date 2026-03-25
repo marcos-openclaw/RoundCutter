@@ -44,6 +44,13 @@ class MainViewModel : ViewModel() {
         _videoUri.value = uri
     }
 
+    fun clearVideo() {
+        _videoUri.value = null
+        _clips.value = emptyList()
+        _inPoint.value = null
+        _exportState.value = ExportState.Idle
+    }
+
     fun setInPoint(ms: Long) {
         _inPoint.value = ms
     }

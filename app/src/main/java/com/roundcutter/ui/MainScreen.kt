@@ -213,17 +213,35 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                         .aspectRatio(16f / 9f)
                 }
 
-                AndroidView(
-                    factory = { ctx ->
-                        PlayerView(ctx).apply {
-                            this.player = player
-                            useController = false
-                        }
-                    },
-                    modifier = videoModifier.clickable {
-                        if (player.isPlaying) player.pause() else player.play()
+                Box(modifier = videoModifier) {
+                    AndroidView(
+                        factory = { ctx ->
+                            PlayerView(ctx).apply {
+                                this.player = player
+                                useController = false
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable {
+                                if (player.isPlaying) player.pause() else player.play()
+                            }
+                    )
+                    // Change video button
+                    FilledTonalButton(
+                        onClick = {
+                            player.stop()
+                            player.clearMediaItems()
+                            viewModel.clearVideo()
+                        },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("✕ Video", style = MaterialTheme.typography.labelSmall)
                     }
-                )
+                }
 
                 // ── Scrollable controls area ──────────────────────
                 // In landscape, controls may overflow; wrap in scroll
@@ -337,7 +355,7 @@ private fun ColumnScope.ControlsContent(
     // ── Jump controls ─────────────────────────────────
     // Two rows in landscape to avoid overflow
     if (isLandscape) {
-        // Single row: SET IN | ◀3m ◀1s ◀F F▶ 1s▶ 3m▶ | SET OUT
+        // Single row: SET IN | ◀3m ◀1m ◀1s 1s▶ 1m▶ 3m▶ | SET OUT
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -360,13 +378,13 @@ private fun ColumnScope.ControlsContent(
             ) {
                 SmallButton("◀3m") { player.seekTo((player.currentPosition - 180_000L).coerceAtLeast(0L)) }
                 Spacer(Modifier.width(3.dp))
+                SmallButton("◀1m") { player.seekTo((player.currentPosition - 60_000L).coerceAtLeast(0L)) }
+                Spacer(Modifier.width(3.dp))
                 SmallButton("◀1s") { player.seekTo((player.currentPosition - 1000L).coerceAtLeast(0L)) }
                 Spacer(Modifier.width(3.dp))
-                SmallButton("◀F") { player.seekTo((player.currentPosition - 33L).coerceAtLeast(0L)) }
-                Spacer(Modifier.width(3.dp))
-                SmallButton("F▶") { player.seekTo(player.currentPosition + 33L) }
-                Spacer(Modifier.width(3.dp))
                 SmallButton("1s▶") { player.seekTo(player.currentPosition + 1000L) }
+                Spacer(Modifier.width(3.dp))
+                SmallButton("1m▶") { player.seekTo((player.currentPosition + 60_000L).coerceAtMost(playerDuration)) }
                 Spacer(Modifier.width(3.dp))
                 SmallButton("3m▶") { player.seekTo((player.currentPosition + 180_000L).coerceAtMost(playerDuration)) }
             }
@@ -399,13 +417,13 @@ private fun ColumnScope.ControlsContent(
         ) {
             SmallButton("◀3m") { player.seekTo((player.currentPosition - 180_000L).coerceAtLeast(0L)) }
             Spacer(Modifier.width(4.dp))
+            SmallButton("◀1m") { player.seekTo((player.currentPosition - 60_000L).coerceAtLeast(0L)) }
+            Spacer(Modifier.width(4.dp))
             SmallButton("◀1s") { player.seekTo((player.currentPosition - 1000L).coerceAtLeast(0L)) }
             Spacer(Modifier.width(4.dp))
-            SmallButton("◀F") { player.seekTo((player.currentPosition - 33L).coerceAtLeast(0L)) }
-            Spacer(Modifier.width(4.dp))
-            SmallButton("F▶") { player.seekTo(player.currentPosition + 33L) }
-            Spacer(Modifier.width(4.dp))
             SmallButton("1s▶") { player.seekTo(player.currentPosition + 1000L) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("1m▶") { player.seekTo((player.currentPosition + 60_000L).coerceAtMost(playerDuration)) }
             Spacer(Modifier.width(4.dp))
             SmallButton("3m▶") { player.seekTo((player.currentPosition + 180_000L).coerceAtMost(playerDuration)) }
         }
