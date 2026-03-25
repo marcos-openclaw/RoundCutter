@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -26,7 +27,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -96,6 +99,7 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
 
     val player = remember {
         ExoPlayer.Builder(context.applicationContext).build().apply {
+            // Start with EXACT for button-based seeking; scrub bar switches dynamically
             setSeekParameters(SeekParameters.EXACT)
         }
     }
@@ -191,8 +195,9 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
             ) {
                 // ── Video Player ──────────────────────────────────
                 val videoModifier = if (isLandscape) {
+                    // Smaller in landscape so controls fit below
                     Modifier
-                        .fillMaxWidth(0.65f)
+                        .fillMaxWidth(0.50f)
                         .aspectRatio(16f / 9f)
                         .align(Alignment.CenterHorizontally)
                 } else {
@@ -213,199 +218,298 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                     }
                 )
 
-                // ── Adaptive scrub bar ────────────────────────────
-                AdaptiveScrubBar(
-                    fraction = scrubFraction,
-                    duration = playerDuration,
-                    clips = clips,
-                    inPoint = inPoint,
-                    onScrubStart = {
-                        isDragging = true
-                        player.pause()
-                    },
-                    onScrubDelta = { deltaFraction ->
-                        scrubFraction = (scrubFraction + deltaFraction).coerceIn(0f, 1f)
-                        player.seekTo((scrubFraction * playerDuration).toLong())
-                    },
-                    onScrubEnd = {
-                        isDragging = false
-                        player.seekTo((scrubFraction * playerDuration).toLong())
-                    },
-                    modifier = Modifier
+                // ── Scrollable controls area ──────────────────────
+                // In landscape, controls may overflow; wrap in scroll
+                val controlsModifier = if (isLandscape) {
+                    Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                )
-
-                // ── Time display ──────────────────────────────────
-                Text(
-                    text = formatTime(playerPosition),
-                    fontFamily = FontFamily.Monospace,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                } else {
+                    Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(Modifier.height(4.dp))
-
-                // ── Jump controls ─────────────────────────────────
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    FilledTonalButton(
-                        onClick = { player.seekTo((player.currentPosition - 180_000L).coerceAtLeast(0L)) },
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                    ) { Text("◀3m", style = MaterialTheme.typography.labelSmall) }
-                    Spacer(Modifier.width(4.dp))
-                    FilledTonalButton(
-                        onClick = { player.seekTo((player.currentPosition - 1000L).coerceAtLeast(0L)) },
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                    ) { Text("◀1s", style = MaterialTheme.typography.labelSmall) }
-                    Spacer(Modifier.width(4.dp))
-                    FilledTonalButton(
-                        onClick = { player.seekTo((player.currentPosition - 33L).coerceAtLeast(0L)) },
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                    ) { Text("◀F", style = MaterialTheme.typography.labelSmall) }
-                    Spacer(Modifier.width(4.dp))
-                    FilledTonalButton(
-                        onClick = { player.seekTo(player.currentPosition + 33L) },
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                    ) { Text("F▶", style = MaterialTheme.typography.labelSmall) }
-                    Spacer(Modifier.width(4.dp))
-                    FilledTonalButton(
-                        onClick = { player.seekTo(player.currentPosition + 1000L) },
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                    ) { Text("1s▶", style = MaterialTheme.typography.labelSmall) }
-                    Spacer(Modifier.width(4.dp))
-                    FilledTonalButton(
-                        onClick = {
-                            player.seekTo(
-                                (player.currentPosition + 180_000L).coerceAtMost(playerDuration)
-                            )
-                        },
-                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
-                    ) { Text("3m▶", style = MaterialTheme.typography.labelSmall) }
+                        .weight(1f)
                 }
 
-                Spacer(Modifier.height(4.dp))
-
-                // ── Mark In / Out ─────────────────────────────────
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Button(
-                        onClick = { viewModel.setInPoint(player.currentPosition) },
-                        colors = if (inPoint != null)
-                            ButtonDefaults.buttonColors(containerColor = Color(0xFF00AA44))
-                        else
-                            ButtonDefaults.buttonColors()
-                    ) { Text("SET IN") }
-
-                    Button(
-                        onClick = { viewModel.setOutPoint(player.currentPosition) },
-                        enabled = inPoint != null
-                    ) { Text("SET OUT") }
-
-                    if (inPoint != null) {
-                        Text(
-                            text = "IN: ${formatTime(inPoint!!)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontFamily = FontFamily.Monospace
+                // We need a nested structure: scrollable outer + LazyColumn inner
+                // In landscape, use a fixed-height clip list instead of weight
+                if (isLandscape) {
+                    Column(modifier = controlsModifier) {
+                        ControlsContent(
+                            player = player,
+                            viewModel = viewModel,
+                            clips = clips,
+                            inPoint = inPoint,
+                            exportState = exportState,
+                            videoUri = videoUri,
+                            playerPosition = playerPosition,
+                            playerDuration = playerDuration,
+                            scrubFraction = scrubFraction,
+                            isDragging = isDragging,
+                            onDragStateChange = { isDragging = it },
+                            onScrubFractionChange = { scrubFraction = it },
+                            isLandscape = true
                         )
                     }
-                }
-
-                Spacer(Modifier.height(4.dp))
-
-                // ── Clips list ────────────────────────────────────
-                LazyColumn(modifier = Modifier.weight(1f)) {
-                    items(clips, key = { it.id }) { clip ->
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = { value ->
-                                if (value != SwipeToDismissBoxValue.Settled) {
-                                    viewModel.removeClip(clip.id)
-                                    true
-                                } else false
-                            }
+                } else {
+                    Column(modifier = controlsModifier) {
+                        ControlsContent(
+                            player = player,
+                            viewModel = viewModel,
+                            clips = clips,
+                            inPoint = inPoint,
+                            exportState = exportState,
+                            videoUri = videoUri,
+                            playerPosition = playerPosition,
+                            playerDuration = playerDuration,
+                            scrubFraction = scrubFraction,
+                            isDragging = isDragging,
+                            onDragStateChange = { isDragging = it },
+                            onScrubFractionChange = { scrubFraction = it },
+                            isLandscape = false
                         )
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            backgroundContent = {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(Color(0xFFCC0000))
-                                        .padding(end = 16.dp),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) { Text("Delete", color = Color.White) }
-                            }
-                        ) {
-                            ClipRow(
-                                clip = clip,
-                                onDelete = { viewModel.removeClip(clip.id) },
-                                onClick = { player.seekTo(clip.startMs) }
-                            )
-                        }
-                        HorizontalDivider()
                     }
-                }
-
-                // ── Export ─────────────────────────────────────────
-                val isExporting = exportState is ExportState.Exporting
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    if (isExporting) {
-                        val progress = exportState as ExportState.Exporting
-                        Text(
-                            "Exporting ${progress.current}/${progress.total}...",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        LinearProgressIndicator(
-                            progress = { progress.current.toFloat() / progress.total },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(8.dp))
-                    }
-                    Button(
-                        onClick = { videoUri?.let { viewModel.exportAll(context, it) } },
-                        enabled = clips.isNotEmpty() && !isExporting,
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text("Export All (${clips.size})") }
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ColumnScope.ControlsContent(
+    player: ExoPlayer,
+    viewModel: MainViewModel,
+    clips: List<Clip>,
+    inPoint: Long?,
+    exportState: ExportState,
+    videoUri: Uri?,
+    playerPosition: Long,
+    playerDuration: Long,
+    scrubFraction: Float,
+    isDragging: Boolean,
+    onDragStateChange: (Boolean) -> Unit,
+    onScrubFractionChange: (Float) -> Unit,
+    isLandscape: Boolean
+) {
+    // ── Adaptive scrub bar ────────────────────────────
+    AdaptiveScrubBar(
+        fraction = scrubFraction,
+        duration = playerDuration,
+        clips = clips,
+        inPoint = inPoint,
+        onScrubStart = {
+            onDragStateChange(true)
+            // Switch to keyframe seeking for fast scrub
+            player.setSeekParameters(SeekParameters.CLOSEST_SYNC)
+            player.pause()
+        },
+        onScrubDelta = { deltaFraction ->
+            val newFraction = (scrubFraction + deltaFraction).coerceIn(0f, 1f)
+            onScrubFractionChange(newFraction)
+            player.seekTo((newFraction * playerDuration).toLong())
+        },
+        onScrubEnd = {
+            // Final precise seek on release
+            player.setSeekParameters(SeekParameters.EXACT)
+            player.seekTo((scrubFraction * playerDuration).toLong())
+            onDragStateChange(false)
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+    )
+
+    // ── Time display ──────────────────────────────────
+    Text(
+        text = formatTime(playerPosition),
+        fontFamily = FontFamily.Monospace,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        textAlign = TextAlign.Center
+    )
+
+    Spacer(Modifier.height(4.dp))
+
+    // ── Jump controls ─────────────────────────────────
+    // Two rows in landscape to avoid overflow
+    if (isLandscape) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SmallButton("◀3m") { player.seekTo((player.currentPosition - 180_000L).coerceAtLeast(0L)) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("◀1s") { player.seekTo((player.currentPosition - 1000L).coerceAtLeast(0L)) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("◀F") { player.seekTo((player.currentPosition - 33L).coerceAtLeast(0L)) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("F▶") { player.seekTo(player.currentPosition + 33L) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("1s▶") { player.seekTo(player.currentPosition + 1000L) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("3m▶") { player.seekTo((player.currentPosition + 180_000L).coerceAtMost(playerDuration)) }
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SmallButton("◀3m") { player.seekTo((player.currentPosition - 180_000L).coerceAtLeast(0L)) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("◀1s") { player.seekTo((player.currentPosition - 1000L).coerceAtLeast(0L)) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("◀F") { player.seekTo((player.currentPosition - 33L).coerceAtLeast(0L)) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("F▶") { player.seekTo(player.currentPosition + 33L) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("1s▶") { player.seekTo(player.currentPosition + 1000L) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("3m▶") { player.seekTo((player.currentPosition + 180_000L).coerceAtMost(playerDuration)) }
+        }
+    }
+
+    Spacer(Modifier.height(4.dp))
+
+    // ── Mark In / Out ─────────────────────────────────
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Button(
+            onClick = { viewModel.setInPoint(player.currentPosition) },
+            colors = if (inPoint != null)
+                ButtonDefaults.buttonColors(containerColor = Color(0xFF00AA44))
+            else
+                ButtonDefaults.buttonColors()
+        ) { Text("SET IN") }
+
+        Button(
+            onClick = { viewModel.setOutPoint(player.currentPosition) },
+            enabled = inPoint != null
+        ) { Text("SET OUT") }
+
+        if (inPoint != null) {
+            Text(
+                text = "IN: ${formatTime(inPoint!!)}",
+                style = MaterialTheme.typography.bodySmall,
+                fontFamily = FontFamily.Monospace
+            )
+        }
+    }
+
+    Spacer(Modifier.height(4.dp))
+
+    // ── Clips list ────────────────────────────────────
+    // In landscape with scroll parent, give fixed height; in portrait use weight via caller
+    val clipsModifier = if (isLandscape) {
+        Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .weight(1f)
+    }
+
+    LazyColumn(modifier = clipsModifier) {
+        items(clips, key = { it.id }) { clip ->
+            val dismissState = rememberSwipeToDismissBoxState(
+                confirmValueChange = { value ->
+                    if (value != SwipeToDismissBoxValue.Settled) {
+                        viewModel.removeClip(clip.id)
+                        true
+                    } else false
+                }
+            )
+            SwipeToDismissBox(
+                state = dismissState,
+                backgroundContent = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFCC0000))
+                            .padding(end = 16.dp),
+                        contentAlignment = Alignment.CenterEnd
+                    ) { Text("Delete", color = Color.White) }
+                }
+            ) {
+                ClipRow(
+                    clip = clip,
+                    onDelete = { viewModel.removeClip(clip.id) },
+                    onClick = { player.seekTo(clip.startMs) }
+                )
+            }
+            HorizontalDivider()
+        }
+    }
+
+    // ── Export ─────────────────────────────────────────
+    val isExporting = exportState is ExportState.Exporting
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        if (isExporting) {
+            val progress = exportState as ExportState.Exporting
+            Text(
+                "Exporting ${progress.current}/${progress.total}...",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Spacer(Modifier.height(4.dp))
+            LinearProgressIndicator(
+                progress = { progress.current.toFloat() / progress.total },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+        val context = LocalContext.current
+        Button(
+            onClick = { videoUri?.let { viewModel.exportAll(context, it) } },
+            enabled = clips.isNotEmpty() && !isExporting,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Export All (${clips.size})") }
+    }
+}
+
+@Composable
+private fun SmallButton(text: String, onClick: () -> Unit) {
+    FilledTonalButton(
+        onClick = onClick,
+        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+    ) { Text(text, style = MaterialTheme.typography.labelSmall) }
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  Adaptive Scrub Bar
 //
-//  Uses DELTA-based dragging (not absolute position) so the
-//  playhead moves relative to finger movement. When you drag
-//  slowly, it switches to fine mode (10× precision).
+//  During drag: seeks to nearest keyframe (CLOSEST_SYNC) for
+//  instant visual feedback. On release: one final EXACT seek
+//  for frame-precise positioning.
+//
+//  Slow drag → fine mode (10× precision)
 // ═══════════════════════════════════════════════════════════════
 
 @Composable
 private fun AdaptiveScrubBar(
-    fraction: Float,            // 0..1 current position
-    duration: Long,             // total ms
+    fraction: Float,
+    duration: Long,
     clips: List<Clip>,
     inPoint: Long?,
     onScrubStart: () -> Unit,
-    onScrubDelta: (Float) -> Unit,  // delta as fraction of bar width
+    onScrubDelta: (Float) -> Unit,
     onScrubEnd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
