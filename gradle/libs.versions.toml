@@ -8,7 +8,7 @@ composeBom = "2024.12.01"
 navigationCompose = "2.8.9"
 lifecycleViewmodelCompose = "2.8.7"
 media3 = "1.5.1"
-ffmpegKit = "6.0-2"
+ffmpegKit = "6.0-2.LTS"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
