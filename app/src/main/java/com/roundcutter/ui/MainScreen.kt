@@ -94,8 +94,9 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
 
     var playerPosition by remember { mutableLongStateOf(0L) }
     var playerDuration by remember { mutableLongStateOf(1L) }
-    var isDragging by remember { mutableStateOf(false) }
-    var scrubFraction by remember { mutableFloatStateOf(0f) }
+    // Use floatArrayOf so the drag handler can mutate without recomposition races
+    val dragState = remember { floatArrayOf(0f, 0f) } // [0]=fraction, [1]=1.0 if dragging
+    var scrubFraction by remember { mutableFloatStateOf(0f) } // for display only
 
     val player = remember {
         ExoPlayer.Builder(context.applicationContext).build().apply {
@@ -124,8 +125,14 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
             val dur = player.duration.takeIf { it > 0L } ?: 1L
             playerPosition = player.currentPosition
             playerDuration = dur
-            if (!isDragging) {
-                scrubFraction = playerPosition.toFloat() / playerDuration.toFloat()
+            if (dragState[1] == 0f) {
+                // Not dragging — sync display from player
+                val frac = playerPosition.toFloat() / playerDuration.toFloat()
+                scrubFraction = frac
+                dragState[0] = frac
+            } else {
+                // Dragging — sync display from drag state
+                scrubFraction = dragState[0]
             }
             delay(100)
         }
@@ -245,9 +252,7 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                             playerPosition = playerPosition,
                             playerDuration = playerDuration,
                             scrubFraction = scrubFraction,
-                            isDragging = isDragging,
-                            onDragStateChange = { isDragging = it },
-                            onScrubFractionChange = { scrubFraction = it },
+                            dragState = dragState,
                             isLandscape = true
                         )
                     }
@@ -263,9 +268,7 @@ fun MainScreen(viewModel: MainViewModel = viewModel()) {
                             playerPosition = playerPosition,
                             playerDuration = playerDuration,
                             scrubFraction = scrubFraction,
-                            isDragging = isDragging,
-                            onDragStateChange = { isDragging = it },
-                            onScrubFractionChange = { scrubFraction = it },
+                            dragState = dragState,
                             isLandscape = false
                         )
                     }
@@ -287,9 +290,7 @@ private fun ColumnScope.ControlsContent(
     playerPosition: Long,
     playerDuration: Long,
     scrubFraction: Float,
-    isDragging: Boolean,
-    onDragStateChange: (Boolean) -> Unit,
-    onScrubFractionChange: (Float) -> Unit,
+    dragState: FloatArray,  // [0]=fraction, [1]=dragging flag
     isLandscape: Boolean
 ) {
     // ── Adaptive scrub bar ────────────────────────────
@@ -299,21 +300,21 @@ private fun ColumnScope.ControlsContent(
         clips = clips,
         inPoint = inPoint,
         onScrubStart = {
-            onDragStateChange(true)
-            // Switch to keyframe seeking for fast scrub
+            dragState[1] = 1f  // mark dragging
             player.setSeekParameters(SeekParameters.CLOSEST_SYNC)
             player.pause()
         },
         onScrubDelta = { deltaFraction ->
-            val newFraction = (scrubFraction + deltaFraction).coerceIn(0f, 1f)
-            onScrubFractionChange(newFraction)
-            player.seekTo((newFraction * playerDuration).toLong())
+            // Mutate the raw array directly — no recomposition needed
+            val newFrac = (dragState[0] + deltaFraction).coerceIn(0f, 1f)
+            dragState[0] = newFrac
+            player.seekTo((newFrac * playerDuration).toLong())
         },
         onScrubEnd = {
-            // Final precise seek on release
+            // Final precise seek
             player.setSeekParameters(SeekParameters.EXACT)
-            player.seekTo((scrubFraction * playerDuration).toLong())
-            onDragStateChange(false)
+            player.seekTo((dragState[0] * playerDuration).toLong())
+            dragState[1] = 0f  // stop dragging
         },
         modifier = Modifier
             .fillMaxWidth()
