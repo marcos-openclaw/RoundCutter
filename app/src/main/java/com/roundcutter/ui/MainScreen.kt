@@ -337,76 +337,109 @@ private fun ColumnScope.ControlsContent(
     // ── Jump controls ─────────────────────────────────
     // Two rows in landscape to avoid overflow
     if (isLandscape) {
+        // Single row: SET IN | ◀3m ◀1s ◀F F▶ 1s▶ 3m▶ | SET OUT
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.Center,
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            SmallButton("◀3m") { player.seekTo((player.currentPosition - 180_000L).coerceAtLeast(0L)) }
-            Spacer(Modifier.width(4.dp))
-            SmallButton("◀1s") { player.seekTo((player.currentPosition - 1000L).coerceAtLeast(0L)) }
-            Spacer(Modifier.width(4.dp))
-            SmallButton("◀F") { player.seekTo((player.currentPosition - 33L).coerceAtLeast(0L)) }
-            Spacer(Modifier.width(4.dp))
-            SmallButton("F▶") { player.seekTo(player.currentPosition + 33L) }
-            Spacer(Modifier.width(4.dp))
-            SmallButton("1s▶") { player.seekTo(player.currentPosition + 1000L) }
-            Spacer(Modifier.width(4.dp))
-            SmallButton("3m▶") { player.seekTo((player.currentPosition + 180_000L).coerceAtMost(playerDuration)) }
+            Button(
+                onClick = { viewModel.setInPoint(player.currentPosition) },
+                colors = if (inPoint != null)
+                    ButtonDefaults.buttonColors(containerColor = Color(0xFF00AA44))
+                else
+                    ButtonDefaults.buttonColors(),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+            ) { Text("SET IN", style = MaterialTheme.typography.labelSmall) }
+
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                SmallButton("◀3m") { player.seekTo((player.currentPosition - 180_000L).coerceAtLeast(0L)) }
+                Spacer(Modifier.width(3.dp))
+                SmallButton("◀1s") { player.seekTo((player.currentPosition - 1000L).coerceAtLeast(0L)) }
+                Spacer(Modifier.width(3.dp))
+                SmallButton("◀F") { player.seekTo((player.currentPosition - 33L).coerceAtLeast(0L)) }
+                Spacer(Modifier.width(3.dp))
+                SmallButton("F▶") { player.seekTo(player.currentPosition + 33L) }
+                Spacer(Modifier.width(3.dp))
+                SmallButton("1s▶") { player.seekTo(player.currentPosition + 1000L) }
+                Spacer(Modifier.width(3.dp))
+                SmallButton("3m▶") { player.seekTo((player.currentPosition + 180_000L).coerceAtMost(playerDuration)) }
+            }
+
+            Button(
+                onClick = { viewModel.setOutPoint(player.currentPosition) },
+                enabled = inPoint != null,
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+            ) { Text("SET OUT", style = MaterialTheme.typography.labelSmall) }
         }
-    } else {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            SmallButton("◀3m") { player.seekTo((player.currentPosition - 180_000L).coerceAtLeast(0L)) }
-            Spacer(Modifier.width(4.dp))
-            SmallButton("◀1s") { player.seekTo((player.currentPosition - 1000L).coerceAtLeast(0L)) }
-            Spacer(Modifier.width(4.dp))
-            SmallButton("◀F") { player.seekTo((player.currentPosition - 33L).coerceAtLeast(0L)) }
-            Spacer(Modifier.width(4.dp))
-            SmallButton("F▶") { player.seekTo(player.currentPosition + 33L) }
-            Spacer(Modifier.width(4.dp))
-            SmallButton("1s▶") { player.seekTo(player.currentPosition + 1000L) }
-            Spacer(Modifier.width(4.dp))
-            SmallButton("3m▶") { player.seekTo((player.currentPosition + 180_000L).coerceAtMost(playerDuration)) }
-        }
-    }
-
-    Spacer(Modifier.height(4.dp))
-
-    // ── Mark In / Out ─────────────────────────────────
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Button(
-            onClick = { viewModel.setInPoint(player.currentPosition) },
-            colors = if (inPoint != null)
-                ButtonDefaults.buttonColors(containerColor = Color(0xFF00AA44))
-            else
-                ButtonDefaults.buttonColors()
-        ) { Text("SET IN") }
-
-        Button(
-            onClick = { viewModel.setOutPoint(player.currentPosition) },
-            enabled = inPoint != null
-        ) { Text("SET OUT") }
-
         if (inPoint != null) {
             Text(
                 text = "IN: ${formatTime(inPoint!!)}",
                 style = MaterialTheme.typography.bodySmall,
-                fontFamily = FontFamily.Monospace
+                fontFamily = FontFamily.Monospace,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                textAlign = TextAlign.Center
             )
+        }
+    } else {
+        // Portrait: jump buttons row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SmallButton("◀3m") { player.seekTo((player.currentPosition - 180_000L).coerceAtLeast(0L)) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("◀1s") { player.seekTo((player.currentPosition - 1000L).coerceAtLeast(0L)) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("◀F") { player.seekTo((player.currentPosition - 33L).coerceAtLeast(0L)) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("F▶") { player.seekTo(player.currentPosition + 33L) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("1s▶") { player.seekTo(player.currentPosition + 1000L) }
+            Spacer(Modifier.width(4.dp))
+            SmallButton("3m▶") { player.seekTo((player.currentPosition + 180_000L).coerceAtMost(playerDuration)) }
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // Portrait: Mark In / Out row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Button(
+                onClick = { viewModel.setInPoint(player.currentPosition) },
+                colors = if (inPoint != null)
+                    ButtonDefaults.buttonColors(containerColor = Color(0xFF00AA44))
+                else
+                    ButtonDefaults.buttonColors()
+            ) { Text("SET IN") }
+
+            Button(
+                onClick = { viewModel.setOutPoint(player.currentPosition) },
+                enabled = inPoint != null
+            ) { Text("SET OUT") }
+
+            if (inPoint != null) {
+                Text(
+                    text = "IN: ${formatTime(inPoint!!)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace
+                )
+            }
         }
     }
 
