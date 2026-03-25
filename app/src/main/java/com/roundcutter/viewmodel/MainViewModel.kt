@@ -36,6 +36,14 @@ class MainViewModel : ViewModel() {
     private val _exportState = MutableStateFlow<ExportState>(ExportState.Idle)
     val exportState: StateFlow<ExportState> = _exportState.asStateFlow()
 
+    /** Persists across config changes (rotation) */
+    private val _videoUri = MutableStateFlow<Uri?>(null)
+    val videoUri: StateFlow<Uri?> = _videoUri.asStateFlow()
+
+    fun setVideoUri(uri: Uri) {
+        _videoUri.value = uri
+    }
+
     fun setInPoint(ms: Long) {
         _inPoint.value = ms
     }
